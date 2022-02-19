@@ -13,7 +13,7 @@ class Window(QMainWindow):
         self.setWindowIcon(QIcon("resource/icon.ico"))
         self.BackButton.setChecked(True)
         self.parent = parent_app
-        self.connectElements()
+        self.connect_elements()
 
     def mousePressEvent(self, event):
         point = QPoint(event.x() - 300, event.y())
@@ -28,15 +28,15 @@ class Window(QMainWindow):
                 self.parent.netmanager.greenpoints.append(point)
                 self.parent.painter.paint_green(point)
         if self.parent.window.AutoButton.isChecked():
-            self.parent.trainNetwork()
+            self.parent.train_network()
 
-    def connectElements(self):
-        self.ClearButton.clicked.connect(self.parent.clearMap)
-        self.LearningSlider.sliderMoved.connect(self.parent.updateLearningrate)
-        self.PredictButton.clicked.connect(self.parent.trainNetwork)
-        self.ResetButton.clicked.connect(self.parent.resetNetwork)
-        self.CustomizeButton.clicked.connect(self.initializeSettings)
+    def connect_elements(self):
+        self.ClearButton.clicked.connect(self.parent.clear_map)
+        self.LearningSlider.sliderMoved.connect(self.parent.update_learning_rate)
+        self.PredictButton.clicked.connect(self.parent.train_network)
+        self.ResetButton.clicked.connect(self.parent.reset_network)
+        self.CustomizeButton.clicked.connect(self.initialize_settings)
 
-    def initializeSettings(self):
-        self.parent.settings_window.importNetwork()
+    def initialize_settings(self):
+        self.parent.settings_window.import_network()
         self.parent.settings_window.show()

@@ -41,7 +41,7 @@ class EvolutionaryNetworkSystem:
         return NewNet1, NewNet2
 
     @staticmethod
-    def getfitness(network, data):
+    def get_fitness(network, data):
         return sum([abs(network.get_error(network.calculate_all(point)[-1], cls)[0][0]) for point, cls in data])
 
     def tournament(self, data, size=4):
@@ -49,9 +49,9 @@ class EvolutionaryNetworkSystem:
         while len(newpopulation) < len(self.population):
             sample = rand.sample(self.population, size)
             best = sample[0]
-            best_error = self.getfitness(best, data)
+            best_error = self.get_fitness(best, data)
             for network in sample[1:]:
-                current_error = self.getfitness(network, data)
+                current_error = self.get_fitness(network, data)
                 if current_error < best_error:
                     best = network
                     best_error = current_error
@@ -60,7 +60,7 @@ class EvolutionaryNetworkSystem:
 
     def evolve(self, data, maxgen=5, mutation_factor=1/400):
         generation = 0
-        best = self.getbestnetwork(data)
+        best = self.get_best_network(data)
 
         while generation < maxgen:
             generation += 1
@@ -83,32 +83,32 @@ class EvolutionaryNetworkSystem:
                     self.crossover(network, rand.choice(self.population))
 
             self.population = self.tournament(data)
-            current_best = self.getbestnetwork(data)
-            if self.getfitness(current_best, data) < self.getfitness(best, data):
+            current_best = self.get_best_network(data)
+            if self.get_fitness(current_best, data) < self.get_fitness(best, data):
                 best = current_best
 
         return best
 
-    def getbestnetwork(self, data):
+    def get_best_network(self, data):
         best = self.population[0]
-        best_error = self.getfitness(best, data)
+        best_error = self.get_fitness(best, data)
         for network in self.population[1:]:
-            current_error = self.getfitness(network, data)
+            current_error = self.get_fitness(network, data)
             if current_error < best_error:
                 best = network
                 best_error = current_error
         return best
 
-    def getaverageerror(self, data):
-        avg = sum([self.getfitness(network, data) for network in self.population])
+    def get_average_error(self, data):
+        avg = sum([self.get_fitness(network, data) for network in self.population])
         return avg/len(self.population)
 
-    def getbesterror(self, data):
-        network = self.getbestnetwork(data)
-        return self.getfitness(network, data)
+    def get_best_error(self, data):
+        network = self.get_best_network(data)
+        return self.get_fitness(network, data)
 
-    def geterrors(self, data):
+    def get_errors(self, data):
         errors = []
         for network in self.population:
-            errors.append(self.getfitness(network, data))
+            errors.append(self.get_fitness(network, data))
         return errors

@@ -73,16 +73,16 @@ class NetworkManager:
             self.thread.started.connect(lambda: self.worker.run(self))
             self.worker.finished.connect(self.terminate_thread)
             self.thread.finished.connect(self.thread.deleteLater)
-            self.worker.progress.connect(self.progressReport)
+            self.worker.progress.connect(self.progress_report)
             self.thread.start()
 
     def terminate_thread(self):
         self.worker.deleteLater()
-        self.parent.updateScreen()
+        self.parent.update_screen()
         self.thread.quit()
         self.thread_active = False
 
-    def progressReport(self, e):
+    def progress_report(self, e):
         self.progress_label.setText(str(e))
 
     def evolve_network(self):
@@ -91,4 +91,4 @@ class NetworkManager:
         if len(points) > 0:
             rand.shuffle(points)
             self.ens.evolve(points, 20)
-        self.network = self.ens.getbestnetwork(points)
+        self.network = self.ens.get_best_network(points)

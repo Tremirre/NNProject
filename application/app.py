@@ -15,26 +15,26 @@ class App:
         self.netmanager = NetworkManager(parent_app=self)
         self.painter = Painter(self.window.image, QPixmap(700, 700))
 
-    def trainNetwork(self):
+    def train_network(self):
         if self.window.BackButton.isChecked():
             self.netmanager.machine_learning()
         else:
             self.netmanager.evolve_network()
-            self.updateScreen()
+            self.update_screen()
 
-    def updateLearningrate(self):
+    def update_learning_rate(self):
         lr = 0.001 + self.window.LearningSlider.value() * 0.01
         self.netmanager.update_learning_rate(lr)
 
-    def resetNetwork(self):
+    def reset_network(self):
         self.netmanager.reset_network()
-        self.updateScreen()
+        self.update_screen()
 
-    def clearMap(self):
+    def clear_map(self):
         self.painter.reset_image()
         self.netmanager.clear_points()
 
-    def updateScreen(self):
+    def update_screen(self):
         self.painter.paint_scene(self.netmanager.network)
         self.painter.paint_points(self.netmanager.greenpoints, self.netmanager.redpoints)
 

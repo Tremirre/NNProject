@@ -11,9 +11,9 @@ class MenuTitle:
         self.label1 = QLabel("Layer name: ", parent_window)
         self.label2 = QLabel("Layer size: ", parent_window)
         self.label3 = QLabel("Layer function: ", parent_window)
-        self.setupElements()
+        self.setup_elements()
 
-    def setupElements(self):
+    def setup_elements(self):
         self.label1.move(self.x + 3, self.y)
         self.label2.move(self.x + 80, self.y)
         self.label3.move(self.x + 140, self.y)
@@ -26,14 +26,14 @@ class NeuralMenuSegment:
         self.text = text
         self.label = QLabel(text, parent_window)
         self.spin_box = QSpinBox(parent_window)
-        self.spin_box.valueChanged.connect(parent_window.updateImage)
+        self.spin_box.valueChanged.connect(parent_window.update_image)
         if self.text != "InputLayer":
             self.combo_box = QComboBox(parent_window)
             self.combo_box.addItems(["Sigmoid", "Linear", "ReLU", "Protected Tanh"])
-            self.combo_box.currentIndexChanged.connect(parent_window.updateImage)
-        self.setupElements()
+            self.combo_box.currentIndexChanged.connect(parent_window.update_image)
+        self.setup_elements()
 
-    def setupElements(self):
+    def setup_elements(self):
         self.label.move(self.x + 3, self.y)
         self.label.resize(73, 20)
         self.spin_box.move(self.x + 80, self.y)
@@ -56,9 +56,9 @@ class NeuralMenuSegment:
         self.label.show()
         self.spin_box.show()
 
-    def shiftMenuSegment(self, offset):
+    def shift_menu_segment(self, offset):
         self.y += offset
-        self.setupElements()
+        self.setup_elements()
 
     def destroy(self):
         self.label.deleteLater()
@@ -66,7 +66,7 @@ class NeuralMenuSegment:
         if self.text != "InputLayer":
             self.combo_box.deleteLater()
 
-    def editSegment(self, value, boxtype):
+    def edit_segment(self, value, boxtype):
         self.spin_box.setValue(value)
         self.combo_box.setCurrentText(boxtype)
         self.combo_box.show()
@@ -86,30 +86,30 @@ class NeuralMenu:
         self.minusButton.move(self.sx + 175, self.sy + 100)
         self.menus = [NeuralMenuSegment(self.parent, self.sx, self.sy + 30, "InputLayer"),
                       NeuralMenuSegment(self.parent, self.sx, self.sy + 55, "OutputLayer")]
-        self.addButton.clicked.connect(lambda: self.addLayer(True))
-        self.minusButton.clicked.connect(lambda: self.removeLayer(True))
+        self.addButton.clicked.connect(lambda: self.add_layer(True))
+        self.minusButton.clicked.connect(lambda: self.remove_layer(True))
         self.minusButton.setDisabled(True)
 
     def move_elements(self, direction):
-        self.menus[-1].shiftMenuSegment(direction * 25)
+        self.menus[-1].shift_menu_segment(direction * 25)
         self.addButton.move(self.sx + 40, self.menus[-1].y + 45)
         self.minusButton.move(self.sx + 175, self.menus[-1].y + 45)
 
-    def addLayer(self, vizupdate, hiddenlayer = None, function = None):
+    def add_layer(self, vizupdate, hiddenlayer = None, function = None):
         if len(self.menus) < 10:
             self.move_elements(1)
             newlayer = NeuralMenuSegment(self.parent, self.sx, self.menus[-1].y - 25,
                                          "HiddenLayer {}".format(len(self.menus) - 1))
             if hiddenlayer and function:
-                newlayer.editSegment(hiddenlayer, function)
+                newlayer.edit_segment(hiddenlayer, function)
             self.menus.insert(-1, newlayer)
             self.minusButton.setDisabled(False)
             if len(self.menus) == 10:
                 self.addButton.setDisabled(True)
             if vizupdate:
-                self.parent.updateImage()
+                self.parent.update_image()
 
-    def removeLayer(self, vizupdate):
+    def remove_layer(self, vizupdate):
         if len(self.menus) > 2:
             self.move_elements(-1)
             self.menus[-2].destroy()
@@ -118,15 +118,15 @@ class NeuralMenu:
             if len(self.menus) == 2:
                 self.minusButton.setDisabled(True)
             if vizupdate:
-                self.parent.updateImage()
+                self.parent.update_image()
 
-    def resetLayers(self):
+    def reset_layers(self):
         self.minusButton.setDisabled(True)
         self.addButton.setDisabled(False)
         for layer in self.menus[1:-1]:
             layer.destroy()
             self.menus.remove(layer)
-        self.menus[-1].shiftMenuSegment(60 - self.menus[-1].y)
+        self.menus[-1].shift_menu_segment(60 - self.menus[-1].y)
 
 
 class SettingsWindow(QWidget):
@@ -146,21 +146,21 @@ class SettingsWindow(QWidget):
         self.CancelButton.move(630, 700)
         self.OKButton.resize(90, 20)
         self.CancelButton.resize(90, 20)
-        self.OKButton.clicked.connect(self.updateNetwork)
+        self.OKButton.clicked.connect(self.update_network)
         self.settingspainter = SettingsPainter(self.image, QPixmap(480, 768), self.menu.menus)
 
-    def importNetwork(self):
-        self.menu.resetLayers()
+    def import_network(self):
+        self.menu.reset_layers()
         network = self.parent.netmanager.network
         hiddenlayers = []
         functions = network.functions
         for layer in network.weights[:-1]:
             hiddenlayers.append(len(layer))
         for hiddenlayer, function in zip(hiddenlayers, functions):
-            self.menu.addLayer(False, hiddenlayer, function)
-        self.updateImage()
+            self.menu.add_layer(False, hiddenlayer, function)
+        self.update_image()
 
-    def updateNetwork(self):
+    def update_network(self):
         convert = {
             "Sigmoid": "sig",
             "Linear": "lin",
@@ -176,9 +176,9 @@ class SettingsWindow(QWidget):
         self.parent.netmanager.network = Network(newlayers, 0.045, newfunctions)
         self.close()
 
-    def updateImage(self):
+    def update_image(self):
         if self.settingspainter:
-            self.settingspainter.redrawImage(self.menu.menus)
+            self.settingspainter.redraw_image(self.menu.menus)
 
-    def updateButtonsState(self):
+    def update_buttons_state(self):
         ...

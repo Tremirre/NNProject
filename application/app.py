@@ -1,7 +1,7 @@
 import sys
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QApplication
-from application.window import Window
+from application.main_window import Window
 from application.network_manager import NetworkManager
 from application.painter import Painter
 from application.settings import SettingsWindow
@@ -20,7 +20,7 @@ class App:
             self.netmanager.machine_learning()
         else:
             self.netmanager.evolve_network()
-            self.update_screen()
+        self.update_screen()
 
     def update_learning_rate(self):
         lr = 0.001 + self.window.LearningSlider.value() * 0.01

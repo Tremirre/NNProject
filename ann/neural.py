@@ -55,15 +55,6 @@ class Network:
         outputs_vector = outputs[i - 1] if i > 0 else np.array([inputs]).T
         return self.functions[i](np.matmul(self.weights[i], outputs_vector), gradient=True)
 
-    def initialize_gradients_and_deltas(self):
-        gradients = []
-        deltas = []
-        for w_size in self.weight_sizes:
-            gradients.append(np.zeros(w_size))
-        for b_size in self.bias_sizes:
-            deltas.append(np.zeros(b_size))
-        return gradients, deltas
-
     def update_gradients_and_deltas(self, input_vector, expected, gradients, deltas):
         outputs = self.calculate_all(input_vector)
         errors = self.calculate_errors(outputs, expected)
@@ -80,7 +71,6 @@ class Network:
     def backpropagation(self, data):
         if len(data) == 0:
             return
-        # gradients, deltas = self.initialize_gradients_and_deltas()
         gradients = [0] * len(self.weights)
         deltas = [0] * len(self.weights)
         for pair, cls in data:

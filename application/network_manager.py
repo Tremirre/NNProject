@@ -53,7 +53,7 @@ class NetworkManager:
         self.thread_active = False
 
     def update_learning_rate(self, lr):
-        self.network.learningrate = lr
+        self.network.learning_rate = lr
         print(self.thread)
 
     def reset_network(self):

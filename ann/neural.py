@@ -1,17 +1,5 @@
 import numpy as np
-
-FUNCTIONS = {
-    "sig": lambda x: 1/(1 + np.exp(-x)),
-    "lin": lambda x: x,
-    "ReLU": np.vectorize(lambda x: max(x, 0)),
-    "tanh": lambda x: np.tanh(x)/2 + 0.5
-}
-
-DERIVATIVES = {
-    "lin": np.vectorize(lambda x: 1),
-    "ReLU": np.vectorize(lambda x: int(x > 0)),
-    "tanh": lambda x: (1 / np.cosh(x))**2 / 2
-}
+import ann.functions as f
 
 
 def to_batches(data, batch_size):
@@ -25,81 +13,60 @@ def to_batches(data, batch_size):
 
 
 class Network:
-    def __init__(self, layers, learningrate, functions=None):
-        self.weightsizes = [(layers[i+1], layers[i]) for i in range(len(layers) - 1)]
-        self.biassizes = [(1, size) for size in layers[1:]]
-        self.weights = [np.random.standard_normal(size) for size in self.weightsizes]
-        self.biases = [np.random.standard_normal(size) for size in self.biassizes]
-        if functions:
-            self.functions = functions
-            while len(functions) < len(layers) - 1:
-                self.functions.append("sig")
-            self.functions[-1] = "sig"
-        else:
-            self.functions = ["sig" for i in self.weights]
-        self.learningrate = learningrate
+    def __init__(self,
+                 layers: tuple[int, ...],
+                 learning_rate: float,
+                 functions: tuple[f.ActivationFunction, ...],
+                 loss_function: f.LossFunction):
+        self.weight_sizes = [(layers[i + 1], layers[i]) for i in range(len(layers) - 1)]
+        self.bias_sizes = [(1, size) for size in layers[1:]]
+        self.weights = [np.random.standard_normal(size) for size in self.weight_sizes]
+        self.biases = [np.random.standard_normal(size) for size in self.bias_sizes]
+        self.functions = functions
+        self.learning_rate = learning_rate
+        self.loss_function = loss_function
 
     def calculate_all(self, provided_input):
         current_output = np.array([provided_input]).T
         outputs = []
         for weight, bias, function in zip(self.weights, self.biases, self.functions):
-            current_output = FUNCTIONS[function](np.matmul(weight, current_output) + bias.T)
+            current_output = function(weight @ current_output + bias.T)
             outputs.append(current_output)
         return outputs
 
     def calculate(self, a):
-        return self.calculate_all(a)[-1][0][0]
+        return self.calculate_all(a)[-1]
 
-    @staticmethod
-    def get_error(output, cls):
-        error = cls - output
-        if abs(error) < 0.5:
-            return np.array(error / 1.5)
-        return np.array(error * 1.5)
+    def get_error(self, output, expected):
+        return self.loss_function(output, np.array((expected,)).T)
 
     def calculate_errors(self, outputs, cls):
-        errors = [np.array([])] * len(self.weights)
-        errors[-1] = self.get_error(outputs[-1], cls)
-        for i in range(len(errors) - 2, -1, -1):
-            errors[i] = np.dot(self.weights[i+1].T, errors[i+1])
-        return errors
+        errors = [self.get_error(outputs[-1], cls)]
+        for weight in self.weights[:0:-1]:
+            errors.append(weight.T @ errors[-1])
+        return errors[::-1]
 
-    def get_derivative(self, pair, outputs, i):
-        if self.functions[i] == "sig":
+    def get_derivative(self, inputs, outputs, i, expected):
+        if self.functions[i] is f.SIGMOID:
             return outputs[i] * (1 - outputs[i])
-        elif self.functions[i] in DERIVATIVES:
-            if i > 0:
-                return DERIVATIVES[self.functions[i]](np.matmul(self.weights[i], outputs[i-1]))
-            return DERIVATIVES[self.functions[i]](np.matmul(self.weights[0], np.array([pair]).T))
-        else:
-            raise Exception("Improper function: " + self.functions[i])
+        if self.functions[i] is f.SOFTMAX:
+            return outputs[i] - np.array((expected,)).T
+        outputs_vector = outputs[i - 1] if i > 0 else np.array([inputs]).T
+        return self.functions[i](np.matmul(self.weights[i], outputs_vector), gradient=True)
 
-    def initialize_gradients_and_deltas(self):
-        gradients = []
-        deltas = []
-        for w_size in self.weightsizes:
-            gradients.append(np.zeros(w_size))
-        for b_size in self.biassizes:
-            deltas.append(np.zeros(b_size))
-        return gradients, deltas
-
-    def update_gradients_and_deltas(self, pair, cls, gradients, deltas):
-        outputs = self.calculate_all(pair)
-        errors = self.calculate_errors(outputs, cls)
-
+    def update_gradients_and_deltas(self, input_vector, expected, gradients, deltas):
+        outputs = self.calculate_all(input_vector)
+        errors = self.calculate_errors(outputs, expected)
         for i in range(len(errors) - 1, -1, -1):
-            derivative = self.get_derivative(pair, outputs, i)
-            temp = self.learningrate * errors[i] * derivative
+            derivative = self.get_derivative(input_vector, outputs, i, expected)
+            temp = self.learning_rate * errors[i] * derivative
             gradients[i] += temp
-            if i > 0:
-                deltas[i] += temp * outputs[i-1].T
-            else:
-                deltas[i] += temp * np.array(pair).T
+            factor = outputs[i - 1].T if i > 0 else np.array(input_vector).T
+            deltas[i] += temp * factor
 
     def backpropagation(self, data):
         if len(data) == 0:
             return
-        #gradients, deltas = self.initialize_gradients_and_deltas()
         gradients = [0] * len(self.weights)
         deltas = [0] * len(self.weights)
         for pair, cls in data:
@@ -118,13 +85,33 @@ class Network:
 
     def print_net(self):
         print("--------------------------------------------------", end='')
-        for i in range(len(self.weights)):
-            print("\nLayer {}".format(i+1))
-            print("Weights:", end='\t')
-            for weight in self.weights[i][0]:
-                print("{:.2f}".format(weight), end=' ; ')
-            print("\nBiases:", end='\t\t')
-            for bias in self.biases[i][0]:
-                print("{:.2f}".format(bias), end=' ; ')
-            print()
+        for i, (weight_layer, bias_layer, func) in enumerate(zip(self.weights, self.biases, self.functions)):
+            print(f"\nLayer {i + 1} ({func.name})")
+            print("\tWeights:")
+            for j, neuron_weights in enumerate(weight_layer):
+                print(f"\t\tNeuron {j}:\t{[round(w, 2) for w in neuron_weights]}")
+            print(f"\n\tBiases:\t{[round(b, 2) for b in bias_layer[0]]}")
         print("--------------------------------------------------")
+
+
+def main():
+    net = Network((2, 4, 1), 1, (f.SIGMOID, f.SIGMOID), loss_function=f.MAE)
+    initial_eval = net.calculate((0, 0))
+    print(initial_eval, net.get_error(initial_eval, 0))
+    initial_eval = net.calculate((0, 1))
+    print(initial_eval, net.get_error(initial_eval, 1))
+    data = [((1, 1), 0), ((0, 1), 1), ((0, 0), 0), ((1, 0), 1)]
+    for i in range(30):
+        net.backpropagation(data)
+    initial_eval = net.calculate((0, 0))
+    print(initial_eval, net.get_error(initial_eval, 0))
+    initial_eval = net.calculate((0, 1))
+    print(initial_eval, net.get_error(initial_eval, 1))
+    # print(net.calculate((1, 1)))
+    # print(net.calculate((1, 0)))
+    # print(net.calculate((0, 1)))
+    # print(net.calculate((0, 0)))
+
+
+if __name__ == "__main__":
+    main()

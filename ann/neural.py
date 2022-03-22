@@ -1,5 +1,5 @@
 import numpy as np
-import functions as f
+import ann.functions as f
 
 
 def to_batches(data, batch_size):
@@ -30,7 +30,7 @@ class Network:
         current_output = np.array([provided_input]).T
         outputs = []
         for weight, bias, function in zip(self.weights, self.biases, self.functions):
-            current_output = function(np.matmul(weight, current_output) + bias.T)
+            current_output = function(weight @ current_output + bias.T)
             outputs.append(current_output)
         return outputs
 
@@ -41,11 +41,10 @@ class Network:
         return self.loss_function(output, np.array((expected,)).T)
 
     def calculate_errors(self, outputs, cls):
-        errors = [np.array([])] * len(self.weights)
-        errors[-1] = self.get_error(outputs[-1], cls)
-        for i in range(len(errors) - 2, -1, -1):
-            errors[i] = np.dot(self.weights[i + 1].T, errors[i + 1])
-        return errors
+        errors = [self.get_error(outputs[-1], cls)]
+        for weight in self.weights[:0:-1]:
+            errors.append(weight.T @ errors[-1])
+        return errors[::-1]
 
     def get_derivative(self, inputs, outputs, i, expected):
         if self.functions[i] is f.SIGMOID:
@@ -58,15 +57,12 @@ class Network:
     def update_gradients_and_deltas(self, input_vector, expected, gradients, deltas):
         outputs = self.calculate_all(input_vector)
         errors = self.calculate_errors(outputs, expected)
-
         for i in range(len(errors) - 1, -1, -1):
             derivative = self.get_derivative(input_vector, outputs, i, expected)
             temp = self.learning_rate * errors[i] * derivative
             gradients[i] += temp
-            if i > 0:
-                deltas[i] += temp * outputs[i - 1].T
-            else:
-                deltas[i] += temp * np.array(input_vector).T
+            factor = outputs[i - 1].T if i > 0 else np.array(input_vector).T
+            deltas[i] += temp * factor
 
     def backpropagation(self, data):
         if len(data) == 0:
@@ -99,15 +95,22 @@ class Network:
 
 
 def main():
-    net = Network((2, 4, 3), 0.1, (f.LINEAR, f.SOFTMAX), loss_function=f.MCCEL)
-    print([round(num[0], 4) for num in net.calculate([1, 1])])
-    print([round(num[0], 4) for num in net.calculate([0, 1])])
-    print([round(num[0], 4) for num in net.calculate([0, 0])])
-    for i in range(20):
-        net.backpropagation([((1, 1), (1, 0, 0)), ((0, 1), (0, 1, 0)), ((0, 0), (0, 0, 1))])
-    print([round(num[0], 4) for num in net.calculate([1, 1])])
-    print([round(num[0], 4) for num in net.calculate([0, 1])])
-    print([round(num[0], 4) for num in net.calculate([0, 0])])
+    net = Network((2, 4, 1), 1, (f.SIGMOID, f.SIGMOID), loss_function=f.MAE)
+    initial_eval = net.calculate((0, 0))
+    print(initial_eval, net.get_error(initial_eval, 0))
+    initial_eval = net.calculate((0, 1))
+    print(initial_eval, net.get_error(initial_eval, 1))
+    data = [((1, 1), 0), ((0, 1), 1), ((0, 0), 0), ((1, 0), 1)]
+    for i in range(30):
+        net.backpropagation(data)
+    initial_eval = net.calculate((0, 0))
+    print(initial_eval, net.get_error(initial_eval, 0))
+    initial_eval = net.calculate((0, 1))
+    print(initial_eval, net.get_error(initial_eval, 1))
+    # print(net.calculate((1, 1)))
+    # print(net.calculate((1, 0)))
+    # print(net.calculate((0, 1)))
+    # print(net.calculate((0, 0)))
 
 
 if __name__ == "__main__":

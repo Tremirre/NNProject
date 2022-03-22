@@ -64,6 +64,6 @@ MAE = LossFunction(lambda t1, t2: np.abs(t1 - t2), "MEAN ABSOLUTE ERROR")
 MCCEL = LossFunction(np.vectorize(multi_class_log_loss), " MULTI CLASS CROSS ENTROPY LOSS")
 
 if __name__ == "__main__":
-    expected = np.array(((-12, 3, 3),)).T
+    expected = np.array(((1, 0, 0),)).T
     obtained = np.array(((0.5, 0.3, 0.2),)).T
-    print(SOFTMAX(expected))
+    print(MCCEL(obtained, expected))

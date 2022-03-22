@@ -61,8 +61,8 @@ class NetworkManager:
         self.ens = EvolutionaryNetworkSystem(20, 0.6, 0.5, [2, 8, 8, 5, 1], 0.045, ['ReLU', 'sig', 'ReLU', 'sig'])
 
     def clear_points(self):
-        self.redpoints = []
-        self.greenpoints = []
+        self.redpoints.clear()
+        self.greenpoints.clear()
 
     def machine_learning(self):
         if not self.thread_active:
